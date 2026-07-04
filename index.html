@@ -464,57 +464,38 @@ function tick(){
 }
 tick();setInterval(tick,1000);
 
-// Email — submits via hidden iframe (reliable Google Forms workaround)
-function notify(){
+// Email — submits to Google Apps Script → writes directly to Google Sheet
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxtKpHSvTOUSvh-IU3tKvoyo968jAtBWpwUrmhdKcgDWH9LiHzmLJY4FX4ZPJfhDFjU1g/exec';
+
+function notify() {
   const el  = document.getElementById('notify-email');
   const btn = document.getElementById('notify-btn');
   const val = el.value.trim();
+
   if (!val || !val.includes('@')) {
     el.focus();
     el.style.borderColor = '#e53935';
     return;
   }
+
   el.style.borderColor = '';
   el.disabled = true;
   btn.disabled = true;
   btn.textContent = 'Sending…';
 
-  const FORM_ID  = '1FAIpQLSfmvbPEWcAvsjxhsu7iCSx_OItR-NabB2wVeocybs_Fy8NTzw';
-  const ENTRY_ID = '520361006';
-
-  // Create a hidden iframe to catch the response (avoids CORS redirect issue)
-  let iframe = document.getElementById('hidden-iframe');
-  if (!iframe) {
-    iframe = document.createElement('iframe');
-    iframe.id   = 'hidden-iframe';
-    iframe.name = 'hidden-iframe';
-    iframe.style.display = 'none';
-    document.body.appendChild(iframe);
-  }
-
-  // Create a hidden form targeting the iframe
-  let form = document.createElement('form');
-  form.method  = 'POST';
-  form.action  = `https://docs.google.com/forms/d/e/${FORM_ID}/formResponse`;
-  form.target  = 'hidden-iframe';
-
-  const input = document.createElement('input');
-  input.type  = 'hidden';
-  input.name  = `entry.${ENTRY_ID}`;
-  input.value = val;
-  form.appendChild(input);
-
-  document.body.appendChild(form);
-  form.submit();
-  document.body.removeChild(form);
-
-  // Show confirmation after short delay
-  setTimeout(function() {
+  fetch(APPS_SCRIPT_URL + '?email=' + encodeURIComponent(val), {
+    method: 'GET',
+    mode: 'no-cors'
+  }).then(function() {
     document.getElementById('thanks').style.display = 'block';
-    btn.textContent = '✓ Done';
-  }, 800);
+    btn.textContent = '✓ You're on the list!';
+  }).catch(function() {
+    document.getElementById('thanks').style.display = 'block';
+    btn.textContent = '✓ You're on the list!';
+  });
 }
-document.getElementById('notify-email').addEventListener('keydown', function(e){
+
+document.getElementById('notify-email').addEventListener('keydown', function(e) {
   if (e.key === 'Enter') notify();
 });
 
